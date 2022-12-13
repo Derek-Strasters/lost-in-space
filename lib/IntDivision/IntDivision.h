@@ -23,17 +23,22 @@ namespace IntDivision {
      */
     class DitheredDivider {
     protected:
-        const unsigned int denominator;
-        const unsigned int quotient;
-        const unsigned int remainder;
-        const unsigned int ditherThreshold;
+        unsigned int _denominator;
+        unsigned int _quotient;
+        unsigned int _remainder;
+        unsigned int _ditherThreshold;
+        unsigned int _index;
 
     public:
-        explicit DitheredDivider(const unsigned int numerator, const unsigned int denominator);
+        explicit DitheredDivider(unsigned int numerator, unsigned int denominator);
 
-        unsigned int quotientSize(const unsigned int index) const;
+        unsigned int quotientSize(unsigned int index) const;
 
-        unsigned int total(const unsigned int index) const;
+        unsigned int nextQuotientSize();
+
+        unsigned int total(unsigned int index) const;
+
+        void setNumeratorDenominator(unsigned int numerator, unsigned int denominator);
     };
 }
 

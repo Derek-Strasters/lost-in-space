@@ -34,39 +34,10 @@ public:
     }
 };
 
-class HysteresisDivider {
-    unsigned int _denominator;
-    unsigned int _remainder;
-
-public:
-    explicit HysteresisDivider() :
-            _denominator(1),
-            _remainder(0) {}
-
-    unsigned int divide(unsigned int numerator, unsigned int denominator) {
-        if (_denominator != denominator) {
-            _remainder = _remainder * denominator / _denominator;
-            _denominator = denominator;
-        }
-
-        unsigned int quotient = numerator / denominator;
-        unsigned int remainder = numerator % denominator;
-        if (_remainder + remainder >= denominator) {
-            _remainder = (_remainder + remainder) % denominator;
-            return quotient + 1;
-        }
-
-        _remainder += remainder;
-        return quotient;
-    }
-};
-
 class PWM {
     bool _state = false;
     unsigned int _timeOn = 0;
     unsigned int _timeOff = PULSE_WIDTH_MAX;
-    unsigned int _onTrim = 0;
-    unsigned int _offTrim = 0;
     MSCounter _counter = MSCounter();
 
 public:
@@ -81,24 +52,22 @@ public:
     bool getState() {
         // If the pulse width is 0 or the max, don't proceed to logic that can change state.
         if (_timeOn == PULSE_WIDTH_MAX || _timeOff == PULSE_WIDTH_MAX) {
-            _onTrim = 0;
-            _offTrim = 0;
             _state = (_timeOn == PULSE_WIDTH_MAX);
             _counter.reset();
             return _state;
         }
 
         unsigned int msCount = _counter.getCount();
-        if (_state && msCount >= _timeOn + _onTrim) {
-            _onTrim = 0;
-            _offTrim = (msCount - _timeOn) * _timeOff / _timeOn;
+        if (_state && msCount >= _timeOn) {
             _state = false;
             _counter.restartCount();
-        } else if (!_state && msCount >= _timeOff + _offTrim) {
-            _offTrim = 0;
-            _onTrim = (msCount - _timeOff) * _timeOn / _timeOff;
+            return _state;
+        }
+
+        if (!_state && msCount >= _timeOff) {
             _state = true;
             _counter.restartCount();
+            return _state;
         }
 
         return _state;

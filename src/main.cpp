@@ -8,8 +8,6 @@
 
 #define PULSE_WIDTH_MAX 15U
 
-using namespace IntDivision;
-
 
 class MSCounter {
     unsigned long lastTime = millis();
@@ -96,7 +94,7 @@ public:
             _offTrim = (msCount - _timeOn) * _timeOff / _timeOn;
             _state = false;
             _counter.restartCount();
-        } else if (! _state && msCount >= _timeOff + _offTrim) {
+        } else if (!_state && msCount >= _timeOff + _offTrim) {
             _offTrim = 0;
             _onTrim = (msCount - _timeOff) * _timeOn / _timeOff;
             _state = true;

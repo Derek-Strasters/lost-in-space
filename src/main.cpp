@@ -2,18 +2,20 @@
 
 #define RED_LED 12
 
-void dash() {
+
+void morseSymbol(unsigned long holdTime, unsigned long releaseTime) {
     digitalWrite(RED_LED, HIGH);
-    delay(850);
+    delay(holdTime);
     digitalWrite(RED_LED, LOW);
-    delay(250);
+    delay(releaseTime);
+}
+
+void dash() {
+    morseSymbol(850, 250);
 }
 
 void dot() {
-    digitalWrite(RED_LED, HIGH);
-    delay(250);
-    digitalWrite(RED_LED, LOW);
-    delay(250);
+    morseSymbol(250, 250);
 }
 
 void space() {

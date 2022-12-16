@@ -4,9 +4,11 @@
 #define DIP02 3
 #define DIP03 4
 
-#define RED_LED 12
+#define BLUE_LED 12
+#define GREEN_LED 11
+#define RED_LED 10
 
-#define PULSE_WIDTH_MAX 15U
+#define PULSE_WIDTH_MAX 30U
 
 
 class MSCounter {
@@ -38,11 +40,13 @@ class PWM {
     bool _state = false;
     unsigned int _timeOn = 0;
     unsigned int _timeOff = PULSE_WIDTH_MAX;
-    MSCounter _counter = MSCounter();
+    MSCounter _counter;
 
 public:
 
-    PWM() = default;
+    PWM() : _state(false), _timeOn(0), _timeOff(PULSE_WIDTH_MAX) {
+        _counter = MSCounter();
+    };
 
     void setPulseWidth(const unsigned int time) {
         _timeOn = time;
@@ -83,34 +87,26 @@ unsigned int wave(int period, int amplitude) {
 }
 
 void setup() {
-    pinMode(LED_BUILTIN, OUTPUT);
+//    pinMode(LED_BUILTIN, OUTPUT);
+    pinMode(BLUE_LED, OUTPUT);
+    pinMode(GREEN_LED, OUTPUT);
     pinMode(RED_LED, OUTPUT);
-    pinMode(DIP01, INPUT);
-    pinMode(DIP02, INPUT);
-    pinMode(DIP03, INPUT);
 }
 
 void loop() {
-    int cycleTime = 2000;
-    int brightness = 0;
-    if (digitalRead(DIP01) == HIGH) {
-        cycleTime -= 500;
-        brightness += 2;
-    }
-    if (digitalRead(DIP02) == HIGH) {
-        cycleTime -= 500;
-        brightness += 5;
-    }
-    if (digitalRead(DIP03) == HIGH) {
-        cycleTime -= 500;
-        brightness += 8;
-    }
-
     static PWM pwm01 = PWM();
-    pwm01.setPulseWidth(wave(cycleTime, PULSE_WIDTH_MAX));
-    digitalWrite(LED_BUILTIN, pwm01.getState() ? HIGH : LOW);
+    pwm01.setPulseWidth(wave(2011, PULSE_WIDTH_MAX));
+    digitalWrite(BLUE_LED, pwm01.getState() ? HIGH : LOW);
 
     static PWM pwm02 = PWM();
-    pwm02.setPulseWidth(brightness);
-    digitalWrite(RED_LED, pwm02.getState() ? HIGH : LOW);
+    pwm02.setPulseWidth(wave(3001, PULSE_WIDTH_MAX));
+    digitalWrite(GREEN_LED, pwm02.getState() ? HIGH : LOW);
+
+    static PWM pwm03 = PWM();
+    pwm03.setPulseWidth(wave(4003, PULSE_WIDTH_MAX));
+    digitalWrite(RED_LED, pwm03.getState() ? HIGH : LOW);
+
+//    static PWM pwm04 = PWM();
+//    pwm04.setPulseWidth(wave(1000, PULSE_WIDTH_MAX));
+//    digitalWrite(LED_BUILTIN, pwm04.getState() ? HIGH : LOW);
 }

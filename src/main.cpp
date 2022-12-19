@@ -3,6 +3,7 @@
 #define BLU_LED 11
 #define GRN_LED 10
 #define RED_LED 9
+#define PHOTO_SENSE A0
 
 #define MAX_UINT16_T ( 0x0000U - 0x0001U )
 
@@ -12,6 +13,8 @@
  * Human eyes do not perceive the brightness of a light linearly, rather it is perceived logarithmically.
  * This function will map (approximately) the entire range of 2^16-1 to power (duty cycle) levels that
  * will reflect a linear increase in brightness as the input is increased linearly.
+ *
+ * More information: https://jared.geek.nz/2013/feb/linear-led-pwm
  *
  * @param brightness The desired brightness.
  * @return The adjusted power or duty cycle for an LED (0-255)
@@ -42,7 +45,7 @@ unsigned char sineWave(const unsigned int period, const unsigned int min_value, 
     unsigned int amplitude = max_value - min_value;
     unsigned int msTime = millis() % period;
     double theta = (TWO_PI * msTime) / period;
-    unsigned int sample = lround(((sin(theta) + 1) * amplitude) / 2) + min_value;
+    unsigned int sample = lround(((1 - cos(theta)) * amplitude) / 2) + min_value;
     return cie_lightness(sample);
 }
 
@@ -76,13 +79,30 @@ unsigned char triangle(const unsigned int period) {
 }
 
 __attribute__((unused)) void setup() {
+    Serial.begin(9600);
     pinMode(BLU_LED, OUTPUT);
     pinMode(GRN_LED, OUTPUT);
     pinMode(RED_LED, OUTPUT);
 }
 
 __attribute__((unused)) void loop() {
-    analogWrite(BLU_LED, sineWave(37900));
-    analogWrite(GRN_LED, triangle(36700));
-    analogWrite(RED_LED, sineWave(37300));
+    int ambient_light = analogRead(PHOTO_SENSE);
+    unsigned char blu_intensity = sineWave(3790 * 2);
+    unsigned char grn_intensity = sineWave(3670 * 2);
+    unsigned char red_intensity = triangle(3730 * 2);
+    static unsigned int count = 0;
+    count++;
+    if (count == 400) {
+        count = 0;
+        Serial.print(blu_intensity);
+        Serial.print(' ');
+        Serial.print(grn_intensity);
+        Serial.print(' ');
+        Serial.print(red_intensity);
+        Serial.print(' ');
+        Serial.println(ambient_light);
+    }
+    analogWrite(BLU_LED, blu_intensity);
+    analogWrite(GRN_LED, grn_intensity);
+    analogWrite(RED_LED, red_intensity);
 }

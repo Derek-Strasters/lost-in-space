@@ -5,7 +5,7 @@
 #define RED_LED 9
 #define PHOTO_SENSE A0
 
-//#define MAX_U_INT 0xFFFFu
+#define MAX_U_INT 0xFFFFu
 #define DOUBLE_MAX_U_INT 0x1FFFEul
 #define MONITOR_INTERVAL 500u
 
@@ -55,7 +55,7 @@ uint16_t cieLightness(const uint16_t brightness) {
 
 
 /**
- * Return one sample's amplitude from a continuous, normalized, positive only valued, sine wave.
+ * Return the amplitude from one sample from a continuous, normalized, positive only valued, sine wave.
  *
  * The signal is translated and normalized to values between 0 and MAX_U_INT_16.
  *
@@ -73,7 +73,43 @@ uint16_t sineWave(
 
 
 /**
- * Return one sample's amplitude from a continuous, normalized, positive only valued, triangle wave.
+ * Return the amplitude from one sample from a continuous, normalized, positive only valued, semi-circle wave.
+ *
+ * The signal is translated and normalized to values between 0 and MAX_U_INT_16.
+ *
+ * @param period The duration (in ms) of one complete cycle.
+ * @param phase Negative phase shift, or time domain location of a sample to be returned.
+ * @return The amplitude value of a the sample at the current time indicated by the phase parameter.
+ */
+uint16_t semiCirc(
+        const uint16_t period,
+        const uint16_t phase
+) {
+    const double xTerm = 2.0 * phase / period - 1.0;
+    return uint16_t (sqrt(1.0 - xTerm * xTerm) * MAX_U_INT);
+}
+
+
+/**
+ * Return the amplitude from one sample from a continuous, normalized, positive only valued, inverted semi-circle wave.
+ *
+ * The signal is translated and normalized to values between 0 and MAX_U_INT_16.
+ *
+ * @param period The duration (in ms) of one complete cycle.
+ * @param phase Negative phase shift, or time domain location of a sample to be returned.
+ * @return The amplitude value of a the sample at the current time indicated by the phase parameter.
+ */
+uint16_t vertCirc(
+        const uint16_t period,
+        const uint16_t phase
+) {
+    const double xTerm = 2.0 * phase / period - 1.0;
+    return uint16_t (MAX_U_INT - sqrt(1.0 - xTerm * xTerm) * MAX_U_INT);
+}
+
+
+/**
+ * Return the amplitude from one sample from a continuous, normalized, positive only valued, triangle wave.
  *
  * The signal is translated and normalized to values between 0 and 1 multiplied by the amplitude (max - min).
  *
@@ -182,9 +218,9 @@ __attribute__((unused)) void loop() {
     static MSDeltaTimer deltaTimer = MSDeltaTimer();
 
     // LED modulators that track state.
-    static SignalGenerator bluWave = SignalGenerator(triangle, 30000u);
-    static SignalGenerator grnWave = SignalGenerator(sineWave, 30500u);
-    static SignalGenerator redWave = SignalGenerator(triangle, 31000u);
+    static SignalGenerator bluWave = SignalGenerator(vertCirc, 20000u);
+    static SignalGenerator grnWave = SignalGenerator(triangle, 20000u);
+    static SignalGenerator redWave = SignalGenerator(sineWave, 20000u);
 
     // A timer and counter to trigger a report on loop frequency among other things every 1/2 second.
     static uint16_t loopTimer = 0;
@@ -194,12 +230,12 @@ __attribute__((unused)) void loop() {
 
     // Get delta time and read analogue pins.
     const uint16_t delta = deltaTimer.getDelta();
-    const uint16_t ambient_light = max(600 - analogRead(PHOTO_SENSE), 0);
+    const uint16_t ambient_light = analogRead(PHOTO_SENSE);
 
     // Adjust the cycle period for LED light patterns.
-    bluWave.setPeriod(300u + ambient_light * 35);
-    grnWave.setPeriod(310u + ambient_light * 35);
-    redWave.setPeriod(320u + ambient_light * 35);
+    bluWave.setPeriod(300u + 80000ul / (ambient_light + 5));
+    grnWave.setPeriod(310u + 80000ul / (ambient_light + 5));
+    redWave.setPeriod(320u + 80000ul / (ambient_light + 5));
 
     // Get the computed LED light intensity values.
     const uint8_t bluIntensity = bluWave.getAmplitude(delta);

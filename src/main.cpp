@@ -7,7 +7,7 @@
 
 #define MAX_U_INT 0xFFFFu
 #define DOUBLE_MAX_U_INT 0x1FFFEul
-#define MONITOR_INTERVAL 500u
+#define MONITOR_INTERVAL 500000u
 
 
 /**
@@ -15,12 +15,12 @@
  * time the getDelta() method was called.
  */
 class MSDeltaTimer {
-    uint32_t lastTime = millis();
+    uint32_t lastTime = micros();
 public:
     MSDeltaTimer() = default;
 
     uint16_t getDelta() {
-        uint32_t now = millis();
+        uint32_t now = micros();
         uint16_t elapsed = now - lastTime;
         lastTime = now;
 
@@ -86,7 +86,7 @@ uint16_t semiCirc(
         const uint16_t phase
 ) {
     const double xTerm = 2.0 * phase / period - 1.0;
-    return uint16_t (sqrt(1.0 - xTerm * xTerm) * MAX_U_INT);
+    return uint16_t(sqrt(1.0 - xTerm * xTerm) * MAX_U_INT);
 }
 
 
@@ -104,7 +104,7 @@ uint16_t vertCirc(
         const uint16_t phase
 ) {
     const double xTerm = 2.0 * phase / period - 1.0;
-    return uint16_t (MAX_U_INT - sqrt(1.0 - xTerm * xTerm) * MAX_U_INT);
+    return uint16_t(MAX_U_INT - sqrt(1.0 - xTerm * xTerm) * MAX_U_INT);
 }
 
 
@@ -142,8 +142,8 @@ class SignalGenerator {
     uint16_t period;
     uint16_t cursor;
 
-    uint8_t remainder_on;
-    uint8_t remainder_off;
+    int remainder_on;
+    int remainder_off;
 
 public:
     SignalGenerator(
@@ -156,8 +156,8 @@ public:
             waveFunc(waveFunc),
             period(period),
             cursor(0ul),
-            remainder_on(0),
-            remainder_off(0) {};
+            remainder_on(16),
+            remainder_off(16) {};
 
     void setPeriod(const uint16_t newPeriod) {
         if (newPeriod == period) return;
@@ -167,29 +167,27 @@ public:
     }
 
     uint8_t getAmplitude(uint16_t delta) {
-        cursor = cursor + delta;
+        cursor = cursor + lround(delta / 1000.0);
         if (cursor >= period) cursor -= period;
 
         const uint16_t sample = cieLightness(waveFunc(period, cursor));
         const uint8_t truncated = sample >> 8;
 
-        if (delta > 2u || truncated == 0xFF) {
+        if (delta > 1000u || truncated == 0xFF) {
             return truncated;
         }
 
-        // Both remainder_on is empty and remainder_off is empty, so get new values.
-        if (!remainder_on && !remainder_off) {
-            remainder_on = (sample & 0xFF) >> 4;
-            remainder_off = 16 - remainder_on;
-        }
+        const uint8_t ratio = (sample & 0xFF) >> 4;
 
-        if (remainder_on) {
-            remainder_on = delta <= remainder_on ? remainder_on - delta : 0;
+        if (remainder_on * (16 - ratio) < remainder_off * ratio) {
+            remainder_on++;
+            remainder_off--;
             return truncated + 1;
         }
 
         // if (remainder_off)
-        remainder_off = delta <= remainder_off ? remainder_off - delta : 0;
+        remainder_off++;
+        remainder_on--;
         return truncated;
     }
 };
@@ -218,13 +216,16 @@ __attribute__((unused)) void loop() {
     static MSDeltaTimer deltaTimer = MSDeltaTimer();
 
     // LED modulators that track state.
+//    static SignalGenerator bluWave = SignalGenerator(vertCirc, 30000u);
+//    static SignalGenerator grnWave = SignalGenerator(vertCirc, 30000u);
+//    static SignalGenerator redWave = SignalGenerator(vertCirc, 30000u);
     static SignalGenerator bluWave = SignalGenerator(vertCirc, 20000u);
     static SignalGenerator grnWave = SignalGenerator(triangle, 20000u);
     static SignalGenerator redWave = SignalGenerator(sineWave, 20000u);
 
     // A timer and counter to trigger a report on loop frequency among other things every 1/2 second.
-    static uint16_t loopTimer = 0;
-    static uint16_t loopCount = 0;
+//    static uint32_t loopTimer = 0;
+//    static uint16_t loopCount = 0;
 
     // **************** MAIN LOOP ACTIONS ****************
 
@@ -233,9 +234,9 @@ __attribute__((unused)) void loop() {
     const uint16_t ambient_light = analogRead(PHOTO_SENSE);
 
     // Adjust the cycle period for LED light patterns.
-    bluWave.setPeriod(300u + 80000ul / (ambient_light + 5));
-    grnWave.setPeriod(310u + 80000ul / (ambient_light + 5));
-    redWave.setPeriod(320u + 80000ul / (ambient_light + 5));
+    bluWave.setPeriod(300u + 120000ul / (ambient_light + 5));
+    grnWave.setPeriod(310u + 120000ul / (ambient_light + 5));
+    redWave.setPeriod(320u + 120000ul / (ambient_light + 5));
 
     // Get the computed LED light intensity values.
     const uint8_t bluIntensity = bluWave.getAmplitude(delta);
@@ -250,23 +251,23 @@ __attribute__((unused)) void loop() {
     // **************** REPORTING ****************
 
     // Report status of pins and main loop frequency to the serial port.
-    loopTimer += delta;
-    loopCount++;
-    if (loopTimer >= MONITOR_INTERVAL) {
-        char buffer[79];
-        sprintf(
-                buffer,
-                "Blu: %3u  Grn: %3u  Red: %3u  LightLVL:%3u LoopFRQ:%4uHz (%4dms) (%2d ms)",
-                bluIntensity,
-                grnIntensity,
-                redIntensity,
-                ambient_light,
-                loopCount * 2,
-                loopTimer,
-                delta
-        );
-        Serial.println(buffer);
-        loopCount = 0;
-        loopTimer -= MONITOR_INTERVAL;
-    }
+//    loopTimer += delta;
+//    loopCount++;
+//    if (loopTimer >= MONITOR_INTERVAL) {
+//        char buffer[79];
+//        sprintf(
+//                buffer,
+//                "Blu: %3u  Grn: %3u  Red: %3u  LightLVL:%3u LoopFRQ:%5uHz (%6lu ms) (%2d ms)",
+//                bluIntensity,
+//                grnIntensity,
+//                redIntensity,
+//                ambient_light,
+//                loopCount * 2,
+//                loopTimer,
+//                delta
+//        );
+//        Serial.println(buffer);
+//        loopCount = 0;
+//        loopTimer -= MONITOR_INTERVAL;
+//    }
 }

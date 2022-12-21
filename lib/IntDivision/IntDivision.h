@@ -29,11 +29,11 @@ namespace IntDivision {
         const unsigned int ditherThreshold;
 
     public:
-        explicit DitheredDivider(const unsigned int numerator, const unsigned int denominator);
+        explicit DitheredDivider(unsigned int numerator, unsigned int denominator);
 
-        unsigned int quotientSize(const unsigned int index) const;
+        unsigned int quotientSize(unsigned int index) const;
 
-        unsigned int total(const unsigned int index) const;
+        unsigned int total(unsigned int index) const;
     };
 }
 

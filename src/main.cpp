@@ -1,29 +1,34 @@
 #include <Arduino.h>
 
-#define RED_LED 12
+#define RED_LED 13
 
 
-void morseSymbol(unsigned long holdTime, unsigned long releaseTime) {
+void morseSymbol(int holdTime, int releaseTime) {
     digitalWrite(RED_LED, HIGH);
     delay(holdTime);
     digitalWrite(RED_LED, LOW);
     delay(releaseTime);
 }
 
+int quarterSecondsToMs(int quarterSeconds) {
+    int milliseconds = quarterSeconds * 250;
+    return milliseconds;
+}
+
 void dash() {
-    morseSymbol(850, 250);
+    morseSymbol(quarterSecondsToMs(3), quarterSecondsToMs(1));
 }
 
 void dot() {
-    morseSymbol(250, 250);
+    morseSymbol(quarterSecondsToMs(1), quarterSecondsToMs(1));
 }
 
 void space() {
-    delay(750);
+    delay(quarterSecondsToMs(3));
 }
 
 void end() {
-    delay(1750);
+    delay(quarterSecondsToMs(7));
 }
 
 void setup() {
